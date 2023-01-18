@@ -9,10 +9,10 @@ env2 = gym.make("CartPole-v1",render_mode="human")
 inputs = tf.keras.Input(shape=(4,))
 x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(inputs)
 x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(x)
-outputs = tf.keras.layers.Dense(2, activation=tf.nn.softmax)(x)
+outputs = tf.keras.layers.Dense(2, activation=tf.nn.relu)(x)
 model = tf.keras.Model(inputs=inputs, outputs=outputs)
 epsilon = 0.5 # Chance of taking a random action
-discount = 0.05
+discount = 0.12
 learningRate = 0.8
 batchSize = 10 # Number of episodes to train on at once 
 epCount = 1000 # Number of episodes
@@ -41,26 +41,30 @@ lossArr = [] # Array of losses
 epArr = [] # Array of episode numbers
 for _ in range(epCount):
     terminated = False
+    truncated = False
     observation, info = env.reset() # Initializes/resets environment, initializes observation and info values with base values
     rewSum = 0
     lossSum = 0
     observation = tf.convert_to_tensor(observation.reshape((1,4)))
-    while(terminated == False):
+    while terminated == False and truncated == False:
         state = observation
         with tf.GradientTape() as tape:
-            actionIndex = getNextAction(observation)
+            if _ < 900:
+                actionIndex = getNextAction(observation)
+            else:
+                actionIndex = tf.argmax(model(state),axis=-1).numpy()[0]
             observation, reward, terminated, truncated, info = env.step(actionIndex)
             observation = tf.convert_to_tensor(observation.reshape((1,4)))
             loss = customLoss(state,observation,reward,actionIndex)
-        gradients = tape.gradient(loss, model.trainable_variables)
+            gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         rewSum += reward
         lossSum += loss.numpy()
     lossArr.append(lossSum)
     rewardArr.append(rewSum)
     epArr.append(_+1)
-    if _ <= epCount/2:
-        discount*=disMult
+    #if _ <= epCount/2:
+        #discount*=disMult
     print(f"\rEpisode: {_+1}",end="")
     '''if (_+1) % checkWait == 0:
         print(f"Score: {rewardAvg/checkWait}\nLoss: {lossAvg/checkWait}\nEpisode: {_+1}")
