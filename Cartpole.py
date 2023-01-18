@@ -7,8 +7,7 @@ from gym.utils.play import play
 env = gym.make("CartPole-v1")
 env2 = gym.make("CartPole-v1",render_mode="human")
 inputs = tf.keras.Input(shape=(4,))
-x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(inputs)
-x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(x)
+x = tf.keras.layers.Dense(64, activation=tf.nn.relu)(inputs)
 outputs = tf.keras.layers.Dense(2, activation=tf.nn.relu)(x)
 model = tf.keras.Model(inputs=inputs, outputs=outputs)
 epsilon = 0.5 # Chance of taking a random action
