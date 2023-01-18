@@ -8,6 +8,7 @@ env = gym.make("CartPole-v1")
 env2 = gym.make("CartPole-v1",render_mode="human")
 inputs = tf.keras.Input(shape=(4,))
 x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(inputs)
+x = tf.keras.layers.Dense(3, activation=tf.nn.relu)(x)
 outputs = tf.keras.layers.Dense(2, activation=tf.nn.softmax)(x)
 model = tf.keras.Model(inputs=inputs, outputs=outputs)
 epsilon = 0.5 # Chance of taking a random action
@@ -19,7 +20,7 @@ decayMult = (0.001/epsilon)**(1/epCount)
 disMult = (0.395/discount)**(2/epCount)
 mode = 'S' # Switch between Q-Learning and SARSA-Learning
 optimizer = tf.optimizers.SGD(learning_rate=learningRate)
-
+mse_loss = tf.keras.losses.MeanSquaredError()
 
 def getNextAction(state):
     if np.random.random() > epsilon:
@@ -29,7 +30,8 @@ def getNextAction(state):
 def customLoss(state,state2,reward,action):
     oldQ = model(state)[0][action]
     newQ = reward + discount*(tf.reduce_max(model(state2),axis=-1))
-    return tf.reduce_mean(tf.square(newQ - oldQ))
+    mse = mse_loss(tf.reshape(newQ,[1]),tf.reshape(oldQ,[1]))
+    return tf.keras.backend.mean(mse)
 '''def updateS(state,state2,reward,action,action2): 
     oldSARSA = q_values[state,action]
     return oldSARSA + learningRate*(reward + discount*(q_values[state2,action2]) - oldSARSA)'''
