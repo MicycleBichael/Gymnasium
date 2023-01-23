@@ -19,7 +19,7 @@ model = tf.keras.Model(inputs=inputs, outputs=outputs)
 EPSILON = 0.3  # Chance of taking a random action
 DISCOUNT = 0.12
 LEARNING_RATE = 0.3
-BATCH_SIZE = 1050  # Number of episodes to train on at once
+BATCH_SIZE = 1000  # Number of episodes to train on at once
 EP_COUNT = 6000  # Number of episodes
 DECAY_MULT = (0.001/EPSILON)**(1/EP_COUNT)  # Decreases EPSILON to 0.001 over EP_COUNT episodes
 MAX_ITERATIONS = 20  # maximum batch iterations before quitting
