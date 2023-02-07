@@ -15,7 +15,8 @@ env2 = gym.make("CartPole-v1", render_mode="human")
 
 # Initializes model
 inputs = tf.keras.Input(shape=(4,))
-x = tf.keras.layers.Dense(32, activation=tf.nn.relu)(inputs)
+x = tf.keras.layers.Dropout(0.2)(inputs)
+x = tf.keras.layers.Dense(32, activation=tf.nn.relu)(x)
 outputs = tf.keras.layers.Dense(2, activation=tf.nn.relu)(x)
 model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
@@ -23,9 +24,9 @@ EPSILON = 0.6  # Chance of taking a random action
 DISCOUNT = 0.12
 LEARNING_RATE = 0.3
 BATCH_SIZE = 1000  # Number of episodes to train on at once
-EP_COUNT = 200000  # Number of episodes
+EP_COUNT = 6000  # Number of episodes
 DECAY_MULT = (0.1/EPSILON)**(1/EP_COUNT)  # Decreases EPSILON to 0.001 over EP_COUNT episodes
-MAX_ITERATIONS = 100  # maximum batch iterations before quitting
+MAX_ITERATIONS = 20  # maximum batch iterations before quitting
 batch_experiences = []
 batch_validation = []  # validation set
 optimizer = tf.optimizers.SGD(learning_rate=LEARNING_RATE)

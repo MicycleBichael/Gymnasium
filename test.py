@@ -1,4 +1,5 @@
 a = input("Enter times: ")
+b = input("Time in this packet: ")
 d = input("Total time: ")
 c = round(((float(a[6:8])*60 + float(a[9:])) - (float(a[0:2])*60 + float(a[3:5])))/60, 2)
-print(f"New Total: {float(d)+c}\nAdded Time: {c}")
+print(f"New Packet Time: {float(b)+c}\nNew Total: {float(d)+c}\nAdded Time: {c}")
