@@ -226,8 +226,9 @@ for i in t:
     initial_state, info = env.reset()
     initial_state = tf.constant(initial_state, dtype=tf.float32)
     episode_reward, loss = train_step(
-        initial_state, model, optimizer, gamma, max_steps_per_episode))
+        initial_state, model, optimizer, gamma, max_steps_per_episode)
 
+    episode_reward = int(episode_reward)
     episodes_reward.append(episode_reward)
     reward_arr.append(episode_reward)
     loss_arr.append(loss.numpy())

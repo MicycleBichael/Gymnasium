@@ -15,8 +15,7 @@ env2 = gym.make("CartPole-v1", render_mode="human")
 
 # Initializes model
 inputs = tf.keras.Input(shape=(4,))
-x = tf.keras.layers.Dropout(0.2)(inputs)
-x = tf.keras.layers.Dense(32, activation=tf.nn.relu)(x)
+x = tf.keras.layers.Dense(32, activation=tf.nn.relu)(inputs)
 outputs = tf.keras.layers.Dense(2, activation=tf.nn.relu)(x)
 model = tf.keras.Model(inputs=inputs, outputs=outputs)
 
@@ -24,9 +23,9 @@ EPSILON = 0.6  # Chance of taking a random action
 DISCOUNT = 0.12
 LEARNING_RATE = 0.3
 BATCH_SIZE = 1000  # Number of episodes to train on at once
-EP_COUNT = 6000  # Number of episodes
+EP_COUNT = 60000  # Number of episodes
 DECAY_MULT = (0.1/EPSILON)**(1/EP_COUNT)  # Decreases EPSILON to 0.001 over EP_COUNT episodes
-MAX_ITERATIONS = 20  # maximum batch iterations before quitting
+MAX_ITERATIONS = 10  # maximum batch iterations before quitting
 batch_experiences = []
 batch_validation = []  # validation set
 optimizer = tf.optimizers.SGD(learning_rate=LEARNING_RATE)
@@ -98,8 +97,8 @@ with tf.device('/GPU:0'):
         # EPSILON *= DECAY_MULT
         if iterations >= MAX_ITERATIONS:
             break
-        loss_arr.append(loss_sum)
         reward_arr.append(reward_sum)
+        loss_arr.append(loss_sum)
         print(f"\rEpisode: {_+1} || Running! ^_^            ", end="")
 print(f"\nBest Average Score: {last_avg}")
 plt.subplot(121)
