@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import collections
 import statistics
 import tqdm
+import os
 
 from tensorflow.python.keras import layers
 from typing import List, Tuple
@@ -26,6 +27,8 @@ np.random.seed(seed)
 
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
+
+SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/Cartpole"
 
 
 class ActorCritic(tf.keras.Model):
@@ -49,13 +52,12 @@ class ActorCritic(tf.keras.Model):
 # Initializes model
 num_actions = env.action_space.n  # 2
 num_hidden_units = 128
-model = ActorCritic(num_actions, num_hidden_units)
+if len(os.listdir(SAVE_PATH)) > 0:
+    model = tf.keras.models.load_model(SAVE_PATH)
+else:
+    model = ActorCritic(num_actions, num_hidden_units)
 
 
-EPSILON = 0.6  # Chance of taking a random action
-DISCOUNT = 0.12
-LEARNING_RATE = 0.3
-EP_COUNT = 60000  # Number of episodes
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
 
@@ -241,7 +243,11 @@ for i in t:
     if i % 10 == 0:
         pass  # print(f'Episode {i}: average reward: {avg_reward}')
 
+    if i % 300 == 0:
+        model.save(SAVE_PATH)
+
     if running_reward > reward_threshold and i >= min_episodes_criterion:
+        model.save(SAVE_PATH)
         break
 
 print(f'\nSolved at episode {i}: average reward: {running_reward:.2f}!')
