@@ -39,10 +39,14 @@ class ActorCritic(tf.keras.Model):
         self.actor = layers.Dense(num_actions)
         self.critic = layers.Dense(1)
 
+        # Add a flatten layer to the critic output to remove the spatial dimensions
+        self.flatten = layers.Flatten()
+
     def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         x = self.common(inputs)
         actor_output = tf.reshape(self.actor(x), (-1, self.actor.units))
-        return actor_output, self.critic(x)
+        critic_output = self.flatten(self.critic(x))
+        return actor_output, critic_output
 
 
 # Initializes model
@@ -154,8 +158,6 @@ def compute_loss(
         values: tf.Tensor,
         returns: tf.Tensor) -> tf.Tensor:
     """Computes the combined Actor-Critic loss."""
-
-    returns = tf.squeeze(returns)
     advantage = returns - values
 
     action_log_probs = tf.math.log(action_probs)
@@ -193,9 +195,10 @@ def train_step(
 
     # Compute the gradients from the loss
     grads = tape.gradient(loss, model.trainable_variables)
+    clipped_gradients, _ = tf.clip_by_global_norm(grads, clip_norm=1.0)
 
     # Apply the gradients to the model's parameters
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    optimizer.apply_gradients(zip(clipped_gradients, model.trainable_variables))
 
     episode_reward = tf.math.reduce_sum(rewards)
 
