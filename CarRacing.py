@@ -118,9 +118,11 @@ def run_episode(
         rewards = rewards.write(t, reward)
         reward_cache.append(int(reward))
 
+        
         if len(reward_cache) >= 100 and statistics.mean(reward_cache) == 0:
             break
         if tf.cast(done, tf.bool):
+            print(f"\nsteps: {t.numpy()}")
             break
 
     action_probs = action_probs.stack()
@@ -227,11 +229,12 @@ def visualize(max_steps: int):
         state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
         state = tf.constant(state, dtype=tf.float32)
         state.set_shape(initial_state_shape)
+    env2.close()
     return
 
 min_episodes_criterion = 100
 max_episodes = 10000
-max_steps_per_episode = 500
+max_steps_per_episode = 1000
 
 
 reward_threshold = 475
