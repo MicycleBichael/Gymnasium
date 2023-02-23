@@ -54,6 +54,8 @@ class ActorCritic(tf.keras.Model):
 # Initializes model
 num_actions = env.action_space.n  
 num_hidden_units = 128
+if not os.path.exists(SAVE_PATH):
+    os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
     model = tf.keras.models.load_model(SAVE_PATH)
     print("Loading model...")
@@ -79,6 +81,7 @@ def tf_env_step(action: tf.Tensor) -> List[tf.Tensor]:
                              [tf.float32, tf.int32, tf.int32])
 
 
+CAR_POINT_FAIL_THRESHOLD = 50
 def run_episode(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -91,7 +94,7 @@ def run_episode(
 
     initial_state_shape = initial_state.shape
     state = initial_state
-    reward_cache = collections.deque(maxlen=100)
+    reward_cache = collections.deque(maxlen=CAR_POINT_FAIL_THRESHOLD)
 
     for t in tf.range(max_steps):
         # Convert state into a batched tensor (batch size = 1)
@@ -119,10 +122,9 @@ def run_episode(
         reward_cache.append(int(reward))
 
         
-        if len(reward_cache) >= 100 and statistics.mean(reward_cache) == 0:
+        if len(reward_cache) >= CAR_POINT_FAIL_THRESHOLD and statistics.mean(reward_cache) == 0:
             break
         if tf.cast(done, tf.bool):
-            print(f"\nsteps: {t.numpy()}")
             break
 
     action_probs = action_probs.stack()
@@ -176,7 +178,6 @@ def compute_loss(
     critic_loss = huber_loss(values, returns)
 
     return actor_loss + critic_loss
-
 
 @tf.function
 def train_step(
@@ -254,6 +255,7 @@ for i in t:
     initial_state, info = env.reset()
     initial_state = cv2.cvtColor(initial_state,cv2.COLOR_RGB2GRAY)
     initial_state = tf.constant(initial_state, dtype=tf.float32)
+    # tf.config.run_functions_eagerly(True)
     episode_reward, loss = train_step(
         initial_state, model, optimizer, gamma, max_steps_per_episode)
 
@@ -267,7 +269,7 @@ for i in t:
         episode_reward=episode_reward, running_reward=running_reward)
 
     if i % 100 == 0:
-        visualize(max_steps_per_episode)
+        # visualize(max_steps_per_episode)
         model.save(SAVE_PATH)
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
