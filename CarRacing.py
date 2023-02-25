@@ -7,9 +7,11 @@ import tqdm
 import matplotlib.pyplot as plt
 import os
 import cv2
+import atexit
 
 from tensorflow.python.keras import layers
 from typing import List, Tuple
+from PIL import Image
 
 gpu = tf.config.experimental.list_physical_devices('GPU')[0]
 tf.config.experimental.set_memory_growth(gpu, True)
@@ -25,7 +27,7 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/CarRacing"
+SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/CarRacing256"
 
 
 class ActorCritic(tf.keras.Model):
@@ -53,7 +55,7 @@ class ActorCritic(tf.keras.Model):
 
 # Initializes model
 num_actions = env.action_space.n  
-num_hidden_units = 128
+num_hidden_units = 256
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
@@ -65,12 +67,22 @@ else:
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
+def cv_operations(state):
+    """Groups computer vision operations done on observation state."""
+    im = Image.fromarray(state)
+    im.save("bruh.png")
+    state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+    state = cv2.resize(state, (48,48))
+    im = Image.fromarray(state)
+    im.save("bruh2.png")
+    return state
+
 
 def env_step(action: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Returns state, reward and done flag given an action."""
 
     state, reward, done, truncated, info = env.step(action)
-    state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+    state = cv_operations(state)
     return (state.astype(np.float32),
             np.array(reward, np.int32),
             np.array(done, np.int32))
@@ -218,7 +230,7 @@ def train_step(
 
 def visualize(max_steps: int):
     initial_state, info = env2.reset()
-    initial_state = cv2.cvtColor(initial_state,cv2.COLOR_RGB2GRAY)
+    initial_state = cv_operations(initial_state)
     initial_state = tf.constant(initial_state, dtype=tf.float32)
     initial_state_shape = initial_state.shape
     state = initial_state
@@ -227,11 +239,18 @@ def visualize(max_steps: int):
         action_logits_t, value = model(state)
         action = tf.random.categorical(action_logits_t, 1)[0, 0]
         state, reward, terminated, truncated, info = env2.step(action.numpy())
-        state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+        state = cv_operations(state)
         state = tf.constant(state, dtype=tf.float32)
         state.set_shape(initial_state_shape)
     env2.close()
     return
+
+
+def exit_handler():
+    model.save(SAVE_PATH)
+
+
+atexit.register(exit_handler)
 
 min_episodes_criterion = 100
 max_episodes = 10000
@@ -253,7 +272,7 @@ episodes_reward: collections.deque = collections.deque(maxlen=min_episodes_crite
 t = tqdm.trange(max_episodes)
 for i in t:
     initial_state, info = env.reset()
-    initial_state = cv2.cvtColor(initial_state,cv2.COLOR_RGB2GRAY)
+    initial_state = cv_operations(initial_state)
     initial_state = tf.constant(initial_state, dtype=tf.float32)
     # tf.config.run_functions_eagerly(True)
     episode_reward, loss = train_step(
