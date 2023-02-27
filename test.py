@@ -15,9 +15,9 @@ while(True):
             elapsed_time = (time2_in_minutes - time1_in_minutes)/60.0
         except:
             elapsed_time = float(times)
-        new_packet_time = round(packet_time + elapsed_time, 2)
-        new_total_time = round(total_time + elapsed_time, 2)
-        print(f"New Packet Time: {new_packet_time}\nNew Total: {new_total_time}\nAdded Time: {round(elapsed_time,2)}")
+        packet_time = round(packet_time + elapsed_time, 2)
+        total_time = round(total_time + elapsed_time, 2)
+        print(f"New Packet Time: {packet_time}\nNew Total: {total_time}\nAdded Time: {round(elapsed_time,2)}")
         with open('Gymnasium/hours.txt', 'w') as file:
             L = [f"Packet hours: {packet_time}\n",f"Total hours: {total_time}"]
             file.writelines(L)

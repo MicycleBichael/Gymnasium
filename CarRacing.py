@@ -35,11 +35,22 @@ class ActorCritic(tf.keras.Model):
     def __init__(
         self,
         num_actions: int,
-            num_hidden_units: int):
+            num_hidden_units: int,
+            image_shape: Tuple[int,int]):
         """Initialize."""
         super().__init__()
 
-        self.common = layers.Dense(num_hidden_units, activation="relu")
+
+
+        self.common = tf.keras.Sequential([
+            layers.Conv2D(32, (3, 3), activation='relu', input_shape=image_shape),
+            layers.MaxPooling2D((2, 2)),
+            layers.Conv2D(64, (3, 3), activation='relu'),
+            layers.MaxPooling2D((2, 2)),
+            layers.Conv2D(64, (3, 3), activation='relu'),
+            layers.Flatten(),
+            layers.Dense(num_hidden_units, activation='relu')
+        ])
         self.actor = layers.Dense(num_actions)
         self.critic = layers.Dense(1)
 
@@ -48,33 +59,35 @@ class ActorCritic(tf.keras.Model):
 
     def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         x = self.common(inputs)
-        actor_output = tf.reshape(self.actor(x), (-1, self.actor.units))
-        critic_output = self.flatten(self.critic(x))
+        actor_output = self.actor(x)
+        critic_output = self.critic(x)
         return actor_output, critic_output
 
 
 # Initializes model
 num_actions = env.action_space.n  
 num_hidden_units = 256
+image_shape = (21,24)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
     model = tf.keras.models.load_model(SAVE_PATH)
     print("Loading model...")
 else:
-    model = ActorCritic(num_actions, num_hidden_units)
+    model = ActorCritic(num_actions, num_hidden_units, image_shape)
 
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
 def cv_operations(state):
     """Groups computer vision operations done on observation state."""
-    im = Image.fromarray(state)
-    im.save("bruh.png")
+    # im = Image.fromarray(state)
+    # im.save("Gymnasium/bruh.png")
     state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
-    state = cv2.resize(state, (48,48))
-    im = Image.fromarray(state)
-    im.save("bruh2.png")
+    state = state[0:85,0:]
+    state = cv2.resize(state, (24,21))
+    # Image.fromarray(state).save("Gymnasium/bruh2.png")
+    state = state.reshape((21,24,1))
     return state
 
 
@@ -104,13 +117,13 @@ def run_episode(
     values = tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True)
     rewards = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
 
-    initial_state_shape = initial_state.shape
+    initial_state_shape = initial_state[0].shape
     state = initial_state
     reward_cache = collections.deque(maxlen=CAR_POINT_FAIL_THRESHOLD)
 
     for t in tf.range(max_steps):
         # Convert state into a batched tensor (batch size = 1)
-        state = tf.expand_dims(state, 0)
+        # state = tf.expand_dims(state, 0) 
 
         # Run the model and to get action probabilities and critic value
         action_logits_t, value = model(state)
@@ -126,8 +139,11 @@ def run_episode(
         action_probs = action_probs.write(t, action_probs_t[0, action])
 
         # Apply action to the environment to get next state and reward
-        state, reward, done = tf_env_step(action)
-        state.set_shape(initial_state_shape)
+        nstate, reward, done = tf_env_step(action)
+        nstate.set_shape(initial_state_shape)
+
+        # Append state to state batch
+        state = tf.concat([state[1:],[nstate]], axis=0)
 
         # Store reward
         rewards = rewards.write(t, reward)
@@ -230,7 +246,6 @@ def train_step(
 
 def visualize(max_steps: int):
     initial_state, info = env2.reset()
-    initial_state = cv_operations(initial_state)
     initial_state = tf.constant(initial_state, dtype=tf.float32)
     initial_state_shape = initial_state.shape
     state = initial_state
@@ -273,6 +288,7 @@ t = tqdm.trange(max_episodes)
 for i in t:
     initial_state, info = env.reset()
     initial_state = cv_operations(initial_state)
+    initial_state = [initial_state, initial_state, initial_state, initial_state]
     initial_state = tf.constant(initial_state, dtype=tf.float32)
     # tf.config.run_functions_eagerly(True)
     episode_reward, loss = train_step(
