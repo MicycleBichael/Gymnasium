@@ -9,16 +9,13 @@ import os
 import cv2
 import atexit
 
-from tensorflow.python.keras import layers
 from typing import List, Tuple
 from PIL import Image
 
 gpu = tf.config.experimental.list_physical_devices('GPU')[0]
 tf.config.experimental.set_memory_growth(gpu, True)
 
-env1 = gym.make("CarRacing-v2", continuous = False)
-env2 = gym.make("CarRacing-v2", continuous = False, render_mode = "human")
-env = env1
+env = gym.make("CarRacing-v2", continuous = False)
 
 seed = 69
 tf.random.set_seed(seed)
@@ -40,22 +37,20 @@ class ActorCritic(tf.keras.Model):
         """Initialize."""
         super().__init__()
 
-
-
         self.common = tf.keras.Sequential([
-            layers.Conv2D(32, (3, 3), activation='relu', input_shape=image_shape),
-            layers.MaxPooling2D((2, 2)),
-            layers.Conv2D(64, (3, 3), activation='relu'),
-            layers.MaxPooling2D((2, 2)),
-            layers.Conv2D(64, (3, 3), activation='relu'),
-            layers.Flatten(),
-            layers.Dense(num_hidden_units, activation='relu')
+            tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=image_shape),
+            tf.keras.layers.MaxPooling2D((2, 2)),
+            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPooling2D((2, 2)),
+            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(num_hidden_units, activation='relu')
         ])
-        self.actor = layers.Dense(num_actions)
-        self.critic = layers.Dense(1)
+        self.actor = tf.keras.layers.Dense(num_actions)
+        self.critic = tf.keras.layers.Dense(1)
 
         # Add a flatten layer to the critic output to remove the spatial dimensions
-        self.flatten = layers.Flatten()
+        self.flatten = tf.keras.layers.Flatten()
 
     def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
         x = self.common(inputs)
@@ -67,7 +62,7 @@ class ActorCritic(tf.keras.Model):
 # Initializes model
 num_actions = env.action_space.n  
 num_hidden_units = 256
-image_shape = (21,24)
+image_shape = (21,24,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
@@ -245,18 +240,27 @@ def train_step(
 
 
 def visualize(max_steps: int):
+    env2 = gym.make("CarRacing-v2", continuous = False, render_mode = "human")
     initial_state, info = env2.reset()
+    initial_state = cv_operations(initial_state)
+    initial_state = [initial_state, initial_state, initial_state, initial_state]
     initial_state = tf.constant(initial_state, dtype=tf.float32)
-    initial_state_shape = initial_state.shape
+    initial_state_shape = initial_state[0].shape
     state = initial_state
+    reward_cache = collections.deque(maxlen=CAR_POINT_FAIL_THRESHOLD)
     for t in range(max_steps):
-        state = tf.expand_dims(state, 0)
         action_logits_t, value = model(state)
         action = tf.random.categorical(action_logits_t, 1)[0, 0]
-        state, reward, terminated, truncated, info = env2.step(action.numpy())
-        state = cv_operations(state)
-        state = tf.constant(state, dtype=tf.float32)
-        state.set_shape(initial_state_shape)
+        nstate, reward, terminated, truncated, info = env2.step(action.numpy())
+        reward_cache.append(reward)
+        nstate = cv_operations(nstate)
+        nstate = tf.constant(nstate, dtype=tf.float32)
+        nstate.set_shape(initial_state_shape)
+        state = tf.concat([state[1:],[nstate]], axis=0)
+        if len(reward_cache) >= CAR_POINT_FAIL_THRESHOLD and statistics.mean(reward_cache) == 0:
+            break
+        if tf.cast(terminated, tf.bool):
+            break
     env2.close()
     return
 
@@ -290,7 +294,7 @@ for i in t:
     initial_state = cv_operations(initial_state)
     initial_state = [initial_state, initial_state, initial_state, initial_state]
     initial_state = tf.constant(initial_state, dtype=tf.float32)
-    # tf.config.run_functions_eagerly(True)
+    tf.config.run_functions_eagerly(False)
     episode_reward, loss = train_step(
         initial_state, model, optimizer, gamma, max_steps_per_episode)
 
