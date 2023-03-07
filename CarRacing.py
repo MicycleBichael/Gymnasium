@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import os
 import cv2
 import atexit
+import shutil
 
 from typing import List, Tuple
 from PIL import Image
@@ -24,7 +25,7 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/CarRacing256"
+SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/CarRacing256/"
 
 
 class ActorCritic(tf.keras.Model):
@@ -59,6 +60,25 @@ class ActorCritic(tf.keras.Model):
         return actor_output, critic_output
 
 
+def save(model: tf.keras.Model):
+    dir_list = os.listdir(SAVE_PATH)
+    if len(dir_list) >= 4:
+        for folder in dir_list:
+            filepath = os.path.join(SAVE_PATH,folder)
+            if str(folder) == "1":
+                shutil.rmtree(os.path.join(SAVE_PATH, folder))
+                continue
+            os.rename(filepath,f"{SAVE_PATH}{int(folder)-1}")
+        new_path = os.path.join(SAVE_PATH,"4")
+        os.makedirs(new_path)
+        tf.keras.models.save_model(model, new_path)
+    else:
+        new_path = f"{SAVE_PATH}{len(dir_list)+1}"
+        os.makedirs(new_path)
+        tf.keras.models.save_model(model, new_path)
+    return
+
+
 # Initializes model
 num_actions = env.action_space.n  
 num_hidden_units = 256
@@ -66,7 +86,7 @@ image_shape = (21,24,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
-    model = tf.keras.models.load_model(SAVE_PATH)
+    model = tf.keras.models.load_model(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
     print("Loading model...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
@@ -266,7 +286,7 @@ def visualize(max_steps: int):
 
 
 def exit_handler():
-    model.save(SAVE_PATH)
+    save(model)
 
 
 atexit.register(exit_handler)
@@ -307,12 +327,12 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
 
-    if i % 100 == 0:
-        # visualize(max_steps_per_episode)
-        model.save(SAVE_PATH)
+    if i > 0 and i % 100 == 0:
+        visualize(max_steps_per_episode)
+        save(model)
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
-        model.save(SAVE_PATH)
+        save(model)
         break
 
 print(f'\nSolved at episode {i}: average reward: {running_reward:.2f}!')
