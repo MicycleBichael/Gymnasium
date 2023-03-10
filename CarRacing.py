@@ -25,7 +25,9 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-SAVE_PATH = "C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/CarRacing256/"
+num_hidden_units = 128
+dir_name = "CarRacing"
+SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
 
 
 class ActorCritic(tf.keras.Model):
@@ -81,13 +83,12 @@ def save(model: tf.keras.Model):
 
 # Initializes model
 num_actions = env.action_space.n  
-num_hidden_units = 256
 image_shape = (21,24,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
     model = tf.keras.models.load_model(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
-    print("Loading model...")
+    print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
 
@@ -121,7 +122,7 @@ def tf_env_step(action: tf.Tensor) -> List[tf.Tensor]:
                              [tf.float32, tf.int32, tf.int32])
 
 
-CAR_POINT_FAIL_THRESHOLD = 50
+CAR_POINT_FAIL_THRESHOLD = 5
 def run_episode(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -327,6 +328,7 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
 
+    # visualize(max_steps_per_episode)
     if i > 0 and i % 100 == 0:
         visualize(max_steps_per_episode)
         save(model)

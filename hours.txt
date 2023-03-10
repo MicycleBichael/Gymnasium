@@ -1,2 +1,2 @@
-Packet hours: 42.74
-Total hours: 93.1
+Packet hours: 49.06
+Total hours: 99.42
