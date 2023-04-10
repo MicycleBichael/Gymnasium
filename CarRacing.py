@@ -25,7 +25,7 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-num_hidden_units = 128
+num_hidden_units = 256
 dir_name = "CarRacing"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
 
@@ -64,14 +64,14 @@ class ActorCritic(tf.keras.Model):
 
 def save(model: tf.keras.Model):
     dir_list = os.listdir(SAVE_PATH)
-    if len(dir_list) >= 4:
+    if len(dir_list) >= 16:
         for folder in dir_list:
             filepath = os.path.join(SAVE_PATH,folder)
             if str(folder) == "1":
                 shutil.rmtree(os.path.join(SAVE_PATH, folder))
                 continue
             os.rename(filepath,f"{SAVE_PATH}{int(folder)-1}")
-        new_path = os.path.join(SAVE_PATH,"4")
+        new_path = os.path.join(SAVE_PATH,"16")
         os.makedirs(new_path)
         tf.keras.models.save_model(model, new_path)
     else:
@@ -97,9 +97,9 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
 def cv_operations(state):
     """Groups computer vision operations done on observation state."""
-    # im = Image.fromarray(state)
-    # im.save("Gymnasium/bruh.png")
+    # Image.fromarray(state).save("Gymnasium/bruh.png")
     state = cv2.cvtColor(state, cv2.COLOR_RGB2GRAY)
+    T, state = cv2.threshold(state, 100, 255, cv2.THRESH_BINARY_INV)
     state = state[0:85,0:]
     state = cv2.resize(state, (24,21))
     # Image.fromarray(state).save("Gymnasium/bruh2.png")
@@ -122,7 +122,7 @@ def tf_env_step(action: tf.Tensor) -> List[tf.Tensor]:
                              [tf.float32, tf.int32, tf.int32])
 
 
-CAR_POINT_FAIL_THRESHOLD = 5
+CAR_POINT_FAIL_THRESHOLD = 500  
 def run_episode(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -294,7 +294,7 @@ atexit.register(exit_handler)
 
 min_episodes_criterion = 100
 max_episodes = 10000
-max_steps_per_episode = 1000
+max_steps_per_episode = 500
 
 
 reward_threshold = 475
@@ -328,14 +328,15 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
 
-    # visualize(max_steps_per_episode)
-    if i > 0 and i % 100 == 0:
+    if i % 50 == 0:
         visualize(max_steps_per_episode)
-        save(model)
+    if i > 0 and i % 100 == 0:  
+        visualize(max_steps_per_episode)
+        save(model) 
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
         save(model)
-        break
+        break   
 
 print(f'\nSolved at episode {i}: average reward: {running_reward:.2f}!')
 
