@@ -322,7 +322,7 @@ for i in t:
     episode_reward = int(episode_reward)
     while True:
         if keyboard.is_pressed('q'):
-            episode_reward-=10
+            episode_reward-=100
             break
         else:
             break
