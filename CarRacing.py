@@ -17,7 +17,7 @@ from PIL import Image
 gpu = tf.config.experimental.list_physical_devices('GPU')[0]
 tf.config.experimental.set_memory_growth(gpu, True)
 
-env = gym.make("CarRacing-v2", continuous = False, render_mode="human")
+env = gym.make("CarRacing-v2", continuous = False, render_mode="rgb_array")
 
 seed = 69
 tf.random.set_seed(seed)
@@ -123,7 +123,7 @@ def tf_env_step(action: tf.Tensor) -> List[tf.Tensor]:
                              [tf.float32, tf.int32, tf.int32])
 
 
-CAR_POINT_FAIL_THRESHOLD = 500  
+CAR_POINT_FAIL_THRESHOLD = 30  
 def run_episode(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -320,12 +320,6 @@ for i in t:
     episode_reward, loss = train_step(
         initial_state, model, optimizer, gamma, max_steps_per_episode)
     episode_reward = int(episode_reward)
-    while True:
-        if keyboard.is_pressed('q'):
-            episode_reward-=100
-            break
-        else:
-            break
     episodes_reward.append(episode_reward)
     reward_arr.append(episode_reward)
     loss_arr.append(loss.numpy())
@@ -334,10 +328,10 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
 
-    # if i % 50 == 0:
-        # visualize(max_steps_per_episode)
+    if i % 50 == 0:
+        visualize(max_steps_per_episode)
     if i > 0 and i % 100 == 0:  
-        # visualize(max_steps_per_episode)
+        visualize(max_steps_per_episode)
         save(model) 
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
