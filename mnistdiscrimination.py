@@ -26,15 +26,33 @@ eps = np.finfo(np.float32).eps.item()
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     initial_learning_rate=0.96,
     decay_steps=60000,
-    decay_rate=0.9
+    decay_rate=0.9998478666
 )
 
-num_hidden_units = 64
+num_hidden_units = 256
 huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-dir_name = "mnistdiscrimination"
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+dir_name = "mnistdiscriminationCAPPED"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_traintemp = [[[]]]
+y_traintemp = []
+x_testtemp = [[[]]]
+y_testtemp = []
+num_cap = 2
+for i, train in enumerate(x_train):
+    if y_train[i] < num_cap and len(train) > 1:
+        x_traintemp.append(train)
+        y_traintemp.append(y_train[i])
+for i, test in enumerate(x_test):
+    if y_test[i] < num_cap and len(test) > 1:
+        x_testtemp.append(test)
+        y_testtemp.append(y_test[i])
+x_test = np.array(x_testtemp)
+x_train = np.array(x_traintemp)
+y_test = np.array(y_testtemp)
+y_train = np.array(y_testtemp)
+
 
 class ActorCritic(tf.keras.Model):
     """Combined actor-critic network."""
@@ -88,7 +106,7 @@ def save(model: tf.keras.Model):
     return
 
 
-num_actions = 10 
+num_actions = num_cap
 image_shape = (28,28,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
@@ -175,9 +193,6 @@ def get_expected_return(
     return returns
 
 
-
-
-
 def compute_loss(
         action_probs: tf.Tensor,
         values: tf.Tensor,
@@ -260,7 +275,7 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
 
-    if i > 0 and i % 250 == 0:
+    if i > 0 and i % 1000 == 0:
         save(model) 
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
