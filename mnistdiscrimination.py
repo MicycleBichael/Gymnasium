@@ -35,23 +35,23 @@ optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dir_name = "mnistdiscriminationCAPPED"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-x_traintemp = [[[]]]
+x_traintemp = np.array([[[]]])
 y_traintemp = []
-x_testtemp = [[[]]]
+x_testtemp = np.array([[[]]])
 y_testtemp = []
 num_cap = 2
 for i, train in enumerate(x_train):
     if y_train[i] < num_cap and len(train) > 1:
-        x_traintemp.append(train)
+        x_traintemp = np.append(x_traintemp, np.array(train),axis=0)
         y_traintemp.append(y_train[i])
 for i, test in enumerate(x_test):
     if y_test[i] < num_cap and len(test) > 1:
-        x_testtemp.append(test)
+        x_testtemp = np.append(x_testtemp, test,axis=0)
         y_testtemp.append(y_test[i])
-x_test = np.array(x_testtemp)
-x_train = np.array(x_traintemp)
-y_test = np.array(y_testtemp)
-y_train = np.array(y_testtemp)
+x_test = x_testtemp
+x_train = x_traintemp
+y_test = y_testtemp
+y_train = y_testtemp
 
 
 class ActorCritic(tf.keras.Model):
