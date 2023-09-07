@@ -29,29 +29,29 @@ lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_rate=0.9998478666
 )
 
-num_hidden_units = 256
+num_hidden_units = 2560
 huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dir_name = "mnistdiscriminationCAPPED"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-x_traintemp = np.array([[[]]])
+x_traintemp = []
 y_traintemp = []
-x_testtemp = np.array([[[]]])
+x_testtemp = []
 y_testtemp = []
 num_cap = 2
 for i, train in enumerate(x_train):
     if y_train[i] < num_cap and len(train) > 1:
-        x_traintemp = np.append(x_traintemp, np.array(train),axis=0)
+        x_traintemp.append(np.array(train,dtype='int32'))
         y_traintemp.append(y_train[i])
 for i, test in enumerate(x_test):
     if y_test[i] < num_cap and len(test) > 1:
-        x_testtemp = np.append(x_testtemp, test,axis=0)
+        x_testtemp.append(np.array(test,dtype='int32'))
         y_testtemp.append(y_test[i])
-x_test = x_testtemp
-x_train = x_traintemp
-y_test = y_testtemp
-y_train = y_testtemp
+x_test = np.array(x_testtemp)
+x_train = np.array(x_traintemp)
+y_test = np.array(y_testtemp)
+y_train = np.array(y_testtemp)
 
 
 class ActorCritic(tf.keras.Model):
@@ -245,7 +245,7 @@ def train_step(
     return episode_reward, loss
 
 min_episodes_criterion = 100
-max_episodes = 60000
+max_episodes = len(x_train)
 
 reward_threshold = 90
 running_reward = 0
