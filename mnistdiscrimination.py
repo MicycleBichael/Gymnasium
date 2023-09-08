@@ -51,7 +51,7 @@ for i, test in enumerate(x_test):
 x_test = np.array(x_testtemp)
 x_train = np.array(x_traintemp)
 y_test = np.array(y_testtemp)
-y_train = np.array(y_testtemp)
+y_train = np.array(y_traintemp)
 
 
 class ActorCritic(tf.keras.Model):
@@ -244,7 +244,7 @@ def train_step(
 
     return episode_reward, loss
 
-min_episodes_criterion = 100
+min_episodes_criterion = 400
 max_episodes = len(x_train)
 
 reward_threshold = 90
@@ -259,27 +259,28 @@ gamma = 0.99
 episodes_reward: collections.deque = collections.deque(maxlen=min_episodes_criterion)
 
 t = tqdm.trange(max_episodes)
-for i in t:
-    state = x_train[i]
-    label = y_train[i]
-    state = cv_operations(state)
-    tf.config.run_functions_eagerly(True)
-    episode_reward, loss = train_step(
-        state, model, label, optimizer, gamma)
-    episode_reward = int(episode_reward)
-    episodes_reward.append(episode_reward)
-    reward_arr.append(episode_reward)
-    loss_arr.append(loss.numpy())
-    running_reward = statistics.mean(episodes_reward)
+while running_reward < reward_threshold:
+    for i in t:
+        state = x_train[i]
+        label = y_train[i]
+        state = cv_operations(state)
+        tf.config.run_functions_eagerly(True)
+        episode_reward, loss = train_step(
+            state, model, label, optimizer, gamma)
+        episode_reward = int(episode_reward)
+        episodes_reward.append(episode_reward)
+        reward_arr.append(episode_reward)
+        loss_arr.append(loss.numpy())
+        running_reward = statistics.mean(episodes_reward)
 
-    t.set_postfix(
-        episode_reward=episode_reward, running_reward=running_reward)
+        t.set_postfix(
+            episode_reward=episode_reward, running_reward=running_reward)
 
-    if i > 0 and i % 1000 == 0:
-        save(model) 
+        if i > 0 and i % 1000 == 0:
+            save(model) 
 
-    if running_reward > reward_threshold and i >= min_episodes_criterion:
-        save(model)
-        break   
+        if running_reward > reward_threshold and i >= min_episodes_criterion:
+            save(model)
+            break   
 
 print(f'\nSolved at episode {i}: average reward: {running_reward:.2f}!')
