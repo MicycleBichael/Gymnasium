@@ -29,7 +29,7 @@ lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_rate=0.9998478666
 )
 
-num_hidden_units = 2560
+num_hidden_units = 256
 huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dir_name = "mnistdiscriminationCAPPED"
@@ -65,12 +65,7 @@ class ActorCritic(tf.keras.Model):
         super().__init__()
 
         self.common = tf.keras.Sequential([
-            tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=image_shape),
-            tf.keras.layers.MaxPooling2D((2, 2)),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPooling2D((2, 2)),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-            tf.keras.layers.Flatten(),
+            tf.keras.layers.Flatten(input_shape=image_shape),
             tf.keras.layers.Dense(num_hidden_units, activation='relu')
         ])
         self.actor = tf.keras.layers.Dense(num_actions)
