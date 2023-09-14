@@ -29,11 +29,11 @@ lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
     decay_rate=0.9998478666
 )
 
-num_hidden_units = 256
+num_hidden_units = 128
 huber_loss = tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.SUM)
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 dir_name = "mnistdiscriminationCAPPED"
-SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
+SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/{num_hidden_units}/"
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 x_traintemp = []
 y_traintemp = []
@@ -93,11 +93,11 @@ def save(model: tf.keras.Model):
             os.rename(filepath,f"{SAVE_PATH}{int(folder)-1}")
         new_path = os.path.join(SAVE_PATH,f"{num_saves}")
         os.makedirs(new_path)
-        tf.keras.models.save_model(model, new_path)
+        model.save_weights(new_path)
     else:
         new_path = f"{SAVE_PATH}{len(dir_list)+1}"
         os.makedirs(new_path)
-        tf.keras.models.save_model(model, new_path)
+        model.save_weights(new_path+"/1")
     return
 
 
@@ -106,7 +106,9 @@ image_shape = (28,28,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
-    model = tf.keras.models.load_model(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
+    model = ActorCritic(num_actions, num_hidden_units, image_shape)
+    model(np.zeros((1,28,28,1)))
+    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
     print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
