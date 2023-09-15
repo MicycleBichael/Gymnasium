@@ -9,7 +9,6 @@ import os
 import cv2
 import atexit
 import shutil
-import keyboard
 
 from typing import List, Tuple
 from PIL import Image
@@ -28,7 +27,7 @@ eps = np.finfo(np.float32).eps.item()
 
 num_hidden_units = 256
 dir_name = "CarRacing"
-SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}{num_hidden_units}/"
+SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/{num_hidden_units}/"
 
 
 class ActorCritic(tf.keras.Model):
@@ -48,7 +47,7 @@ class ActorCritic(tf.keras.Model):
             tf.keras.layers.MaxPooling2D((2, 2)),
             tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
             tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(num_hidden_units, activation='relu')
+            tf.keras.layers.Dropout(0.5)
         ])
         self.actor = tf.keras.layers.Dense(num_actions)
         self.critic = tf.keras.layers.Dense(1)
@@ -65,20 +64,21 @@ class ActorCritic(tf.keras.Model):
 
 def save(model: tf.keras.Model):
     dir_list = os.listdir(SAVE_PATH)
-    if len(dir_list) >= 16:
+    num_saves = 8
+    if len(dir_list) >= num_saves:
         for folder in dir_list:
             filepath = os.path.join(SAVE_PATH,folder)
             if str(folder) == "1":
                 shutil.rmtree(os.path.join(SAVE_PATH, folder))
                 continue
             os.rename(filepath,f"{SAVE_PATH}{int(folder)-1}")
-        new_path = os.path.join(SAVE_PATH,"16")
+        new_path = os.path.join(SAVE_PATH,f"{num_saves}")
         os.makedirs(new_path)
-        tf.keras.models.save_model(model, new_path)
+        model.save_weights(new_path)
     else:
         new_path = f"{SAVE_PATH}{len(dir_list)+1}"
         os.makedirs(new_path)
-        tf.keras.models.save_model(model, new_path)
+        model.save_weights(new_path+"/1")
     return
 
 
@@ -88,7 +88,9 @@ image_shape = (21,24,1)
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 if len(os.listdir(SAVE_PATH)) > 0:
-    model = tf.keras.models.load_model(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
+    model = ActorCritic(num_actions, num_hidden_units, image_shape)
+    model(np.expand_dims(np.zeros(image_shape),axis=0))
+    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
     print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
