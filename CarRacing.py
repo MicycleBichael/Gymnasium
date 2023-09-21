@@ -49,7 +49,7 @@ class ActorCritic(tf.keras.Model):
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dropout(0.5)
         ])
-        self.actor = tf.keras.layers.Dense(num_actions)
+        self.actor = tf.keras.layers.Dense(num_actions, activation='softmax')
         self.critic = tf.keras.layers.Dense(1)
 
         # Add a flatten layer to the critic output to remove the spatial dimensions
@@ -329,9 +329,7 @@ for i in t:
 
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
-
-    if i % 50 == 0:
-        visualize(max_steps_per_episode)
+    
     if i > 0 and i % 100 == 0:  
         visualize(max_steps_per_episode)
         save(model) 
