@@ -108,7 +108,7 @@ if not os.path.exists(SAVE_PATH):
 if len(os.listdir(SAVE_PATH)) > 0:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
     model(np.zeros((1,28,28,1)))
-    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
+    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}/checkpoint")
     print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)

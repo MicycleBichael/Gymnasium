@@ -47,7 +47,7 @@ class ActorCritic(tf.keras.Model):
             tf.keras.layers.MaxPooling2D((2, 2)),
             tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
             tf.keras.layers.Flatten(),
-            tf.keras.layers.Dropout(0.5)
+            tf.keras.layers.Dropout(0.5),
         ])
         self.actor = tf.keras.layers.Dense(num_actions, activation='softmax')
         self.critic = tf.keras.layers.Dense(1)
@@ -90,7 +90,7 @@ if not os.path.exists(SAVE_PATH):
 if len(os.listdir(SAVE_PATH)) > 0:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
     model(np.expand_dims(np.zeros(image_shape),axis=0))
-    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}")
+    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}/1")
     print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
 else:
     model = ActorCritic(num_actions, num_hidden_units, image_shape)
