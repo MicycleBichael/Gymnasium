@@ -29,7 +29,7 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-num_hidden_units = 1
+num_hidden_units = 10
 dir_name = "mario"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/{num_hidden_units}/"
 
@@ -52,6 +52,7 @@ class ActorCritic(tf.keras.Model):
             tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(num_hidden_units)
         ])
         self.actor = tf.keras.layers.Dense(num_actions, activation='softmax')
         self.critic = tf.keras.layers.Dense(1)
@@ -75,10 +76,11 @@ def save(model: tf.keras.Model):
             if str(folder) == "1":
                 shutil.rmtree(os.path.join(SAVE_PATH, folder))
                 continue
-            os.rename(filepath,f"{SAVE_PATH}{int(folder)-1}")
+            shutil.copytree(filepath,os.path.join(SAVE_PATH,str(int(folder)-1)))
+            shutil.rmtree(filepath)
         new_path = os.path.join(SAVE_PATH,f"{num_saves}")
         os.makedirs(new_path)
-        model.save_weights(new_path)
+        model.save_weights(new_path+"/1")
     else:
         new_path = f"{SAVE_PATH}{len(dir_list)+1}"
         os.makedirs(new_path)
