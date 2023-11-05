@@ -29,7 +29,7 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-num_hidden_units = 10
+num_hidden_units = 125
 dir_name = "mario"
 SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/{num_hidden_units}/"
 
@@ -85,7 +85,7 @@ def save(model: tf.keras.Model):
         new_path = f"{SAVE_PATH}{len(dir_list)+1}"
         os.makedirs(new_path)
         model.save_weights(new_path+"/1")
-    return
+    return new_path+"/1"
 
 
 # Initializes model
@@ -300,6 +300,8 @@ running_reward = 0
 reward_arr = []
 loss_arr = []
 
+past_running_reward = -10000
+past_save = f"{SAVE_PATH}{len(os.listdir(SAVE_PATH))}"
 
 # The discount factor for future rewards
 gamma = 0.99
@@ -325,9 +327,14 @@ for i in t:
     t.set_postfix(
         episode_reward=episode_reward, running_reward=running_reward)
     
-    if i > 0 and i % 100 == 0:  
+    if i > 0 and i % 30 == 0:  
         visualize(max_steps_per_episode)
-        save(model) 
+        if running_reward > past_running_reward:
+            past_running_reward = running_reward
+            past_save = save(model)
+        else:
+            print("\nDiverging, loading past save...")
+            model.load_weights(past_save)
 
     if running_reward > reward_threshold and i >= min_episodes_criterion:
         save(model)
