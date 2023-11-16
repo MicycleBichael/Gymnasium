@@ -9,6 +9,7 @@ import os
 import cv2
 import atexit
 import shutil
+import pathlib
 
 from typing import List, Tuple
 from PIL import Image
@@ -29,9 +30,9 @@ np.random.seed(seed)
 # Small epsilon value for stabilizing division operations
 eps = np.finfo(np.float32).eps.item()
 
-num_hidden_units = 128
+num_hidden_units = 1
 dir_name = "mario"
-SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/{num_hidden_units}/"
+SAVE_PATH = f"C:/Users/potot/Desktop/code/Research/Gymnasium/Saved Models/{dir_name}/"
 
 
 class ActorCritic(tf.keras.Model):
@@ -52,7 +53,6 @@ class ActorCritic(tf.keras.Model):
             tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dropout(0.5),
-            tf.keras.layers.Dense(num_hidden_units),
             tf.keras.layers.Dense(num_hidden_units)
         ])
         self.actor = tf.keras.layers.Dense(num_actions, activation='softmax')
@@ -92,16 +92,6 @@ def save(model: tf.keras.Model):
 # Initializes model
 num_actions = env.action_space.n  
 image_shape = (30,32,1)
-if not os.path.exists(SAVE_PATH):
-    os.makedirs(SAVE_PATH)
-if len(os.listdir(SAVE_PATH)) > 0:
-    model = ActorCritic(num_actions, num_hidden_units, image_shape)
-    model(np.expand_dims(np.zeros(image_shape),axis=0))
-    model.load_weights(f"{SAVE_PATH}{os.listdir(SAVE_PATH)[-1]}/1")
-    print(f"Loading model {os.listdir(SAVE_PATH)[-1]}...")
-else:
-    model = ActorCritic(num_actions, num_hidden_units, image_shape)
-
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
@@ -225,7 +215,7 @@ def compute_loss(
 
     return actor_loss + critic_loss
 
-@tf.function
+#@tf.function
 def train_step(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -261,7 +251,7 @@ def train_step(
 
     return episode_reward, loss
 
-
+'''
 def visualize(max_steps: int):
     env2 = JoypadSpace(gym.make(envid), SIMPLE_MOVEMENT)
     initial_state = env2.reset()
@@ -283,13 +273,9 @@ def visualize(max_steps: int):
             break
     env2.close()
     return
+'''
 
 
-def exit_handler():
-    save(model)
-
-
-atexit.register(exit_handler)
 
 min_episodes_criterion = 100
 max_episodes = 10000
@@ -302,57 +288,56 @@ reward_arr = []
 loss_arr = []
 
 past_running_reward = -10000
-past_save = f"{SAVE_PATH}{len(os.listdir(SAVE_PATH))}"
 
 # The discount factor for future rewards
 gamma = 0.99
 
 # Keep the last episodes reward
 episodes_reward: collections.deque = collections.deque(maxlen=min_episodes_criterion)
+bestReward = 0
+bestHiddenUnits = 0
 
-t = tqdm.trange(max_episodes)
-for i in t:
-    initial_state = env.reset()
-    initial_state = cv_operations(initial_state)
-    initial_state = [initial_state, initial_state, initial_state, initial_state]
-    initial_state = tf.constant(initial_state, dtype=tf.float32)
-    tf.config.run_functions_eagerly(False)
-    episode_reward, loss = train_step(
-        initial_state, model, optimizer, gamma, max_steps_per_episode)
-    episode_reward = int(episode_reward)
-    episodes_reward.append(episode_reward)
-    reward_arr.append(episode_reward)
-    loss_arr.append(loss.numpy())
-    running_reward = statistics.mean(episodes_reward)
+saveFilePath = pathlib.Path(SAVE_PATH+"hiddenUnits.txt")
+if saveFilePath.is_file():
+    saveFile = open(SAVE_PATH+"hiddenUnits.txt", "r")
+    b1,b2 = saveFile.readlines()
+    bestHiddenUnits = int(b1)
+    bestReward = float(b2)
+    saveFile.close()
 
-    t.set_postfix(
-        episode_reward=episode_reward, running_reward=running_reward)
-    if (i > 100 or len(os.listdir(SAVE_PATH)) > 0) and episode_reward > past_running_reward and i % 100 != 0:
-        past_save = save(model)
-    if i > 0 and i % 100 == 0:  
-        visualize(max_steps_per_episode)
-        if running_reward > past_running_reward:
+
+
+
+for epoch in range(bestHiddenUnits+1,1001):
+    num_hidden_units = epoch
+    print("Epoch: " + str(num_hidden_units))
+    model = ActorCritic(num_actions,num_hidden_units,image_shape)
+    t = tqdm.trange(max_episodes)
+    model.build(((1,)+image_shape))
+    for i in t:
+        initial_state = env.reset()
+        initial_state = cv_operations(initial_state)
+        initial_state = [initial_state, initial_state, initial_state, initial_state]
+        initial_state = tf.constant(initial_state, dtype=tf.float32)
+        tf.config.run_functions_eagerly(False)
+        episode_reward, loss = train_step(
+            initial_state, model, optimizer, gamma, max_steps_per_episode)
+        episode_reward = int(episode_reward)
+        episodes_reward.append(episode_reward)
+        reward_arr.append(episode_reward)
+        loss_arr.append(loss.numpy())
+        running_reward = statistics.mean(episodes_reward)
+
+        t.set_postfix(
+            episode_reward=episode_reward, running_reward=running_reward)
+
+        if i >= min_episodes_criterion and running_reward >= past_running_reward:
             past_running_reward = running_reward
-            past_save = save(model)
-        else:
-            print("\nDiverging, loading past save...")
-            model.load_weights(past_save)
-
-    if running_reward > reward_threshold and i >= min_episodes_criterion:
-        save(model)
-        break   
-
-print(f'\nSolved at episode {i}: average reward: {running_reward:.2f}!')
-
-
-plt.subplot(121)
-plt.plot(reward_arr, 'r-', label='score', linewidth=1)
-plt.xlabel('Episode')
-plt.legend()
-plt.subplot(122)
-plt.plot(loss_arr, 'b-', label='loss', linewidth=1)
-plt.xlabel('Episode')
-plt.legend()
-plt.show()
-
-visualize(max_steps_per_episode)
+        elif running_reward < past_running_reward:
+            if past_running_reward > bestReward:
+                bestHiddenUnits = num_hidden_units
+                bestReward = past_running_reward
+                saveFile = open(SAVE_PATH+"hiddenUnits.txt", "w")
+                saveFile.write(str(bestHiddenUnits)+"\n"+str(bestReward))
+                saveFile.close()
+            break
