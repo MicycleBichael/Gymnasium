@@ -215,7 +215,7 @@ def compute_loss(
 
     return actor_loss + critic_loss
 
-#@tf.function
+@tf.function
 def train_step(
         initial_state: tf.Tensor,
         model: tf.keras.Model,
@@ -295,20 +295,21 @@ gamma = 0.99
 # Keep the last episodes reward
 episodes_reward: collections.deque = collections.deque(maxlen=min_episodes_criterion)
 bestReward = 0
-bestHiddenUnits = 0
+bestHiddenUnits,lastHiddenUnits = 0
 
 saveFilePath = pathlib.Path(SAVE_PATH+"hiddenUnits.txt")
 if saveFilePath.is_file():
     saveFile = open(SAVE_PATH+"hiddenUnits.txt", "r")
-    b1,b2 = saveFile.readlines()
+    b1,b2,b3 = saveFile.readlines()
     bestHiddenUnits = int(b1)
     bestReward = float(b2)
+    lastHiddenUnits = int(b3)
     saveFile.close()
 
 
 
 
-for epoch in range(bestHiddenUnits+1,1001):
+for epoch in range(lastHiddenUnits+1,1001):
     num_hidden_units = epoch
     print("Epoch: " + str(num_hidden_units))
     model = ActorCritic(num_actions,num_hidden_units,image_shape)
@@ -338,6 +339,11 @@ for epoch in range(bestHiddenUnits+1,1001):
                 bestHiddenUnits = num_hidden_units
                 bestReward = past_running_reward
                 saveFile = open(SAVE_PATH+"hiddenUnits.txt", "w")
-                saveFile.write(str(bestHiddenUnits)+"\n"+str(bestReward))
+                saveFile.write(str(bestHiddenUnits)+"\n"+str(bestReward) +"\n"+bestHiddenUnits)
                 saveFile.close()
+            else:
+                with open(SAVE_PATH+"hiddenUnits.txt", "w+") as savefile:
+                    saveFile.readline()
+                    saveFile.readline()
+                    saveFile.write(num_hidden_units)
             break
