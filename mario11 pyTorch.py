@@ -223,7 +223,7 @@ def optimize_model():
 
 def write_file(text):
     f = open(SAVE_PATH+"data.txt","a")
-    f.write(text+"\n")
+    f.write(text)
     f.close()
 
 def updateInfo(s,e):
@@ -252,11 +252,11 @@ tempStr = ""
 rewardSum = 0
 for i_episode in range(startEpisode,num_episodes):
     # Initialize the environment and get it's state
-    if i_episode+1 % 100 == 0:
+    if (i_episode + 1) % 100 == 0:
         torch.save(policy_net,SAVE_PATH+f"P {i_episode}")
         torch.save(target_net,SAVE_PATH+f"T {i_episode}")
         if len(tempStr) > 0:
-            write_file(tempStr)
+            write_file(tempStr[:-2])
             tempStr = ""
     state = env.reset()
     state = state.copy()
