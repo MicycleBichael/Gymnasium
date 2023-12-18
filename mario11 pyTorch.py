@@ -248,7 +248,7 @@ if torch.cuda.is_available():
 else:
     num_episodes = 50
 
-tempStr = ""
+tempStr = "\n"
 rewardSum = 0
 for i_episode in range(startEpisode,num_episodes):
     # Initialize the environment and get it's state
@@ -257,7 +257,7 @@ for i_episode in range(startEpisode,num_episodes):
         torch.save(target_net,SAVE_PATH+f"T {i_episode}")
         if len(tempStr) > 0:
             write_file(tempStr[:-2])
-            tempStr = ""
+            tempStr = "\n"
     state = env.reset()
     state = state.copy()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
@@ -297,7 +297,7 @@ for i_episode in range(startEpisode,num_episodes):
             scoreList.append(rewardSum)
             # plot_data()
             updateInfo(i_episode,num_episodes)
-            tempStr += f"{rewardSum}\n"
+            tempStr += f"{int(rewardSum)}\n"
             break
 
 
