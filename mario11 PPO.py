@@ -22,7 +22,6 @@ from tqdm import tqdm
 from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 num_cells = 256  # number of cells in each layer i.e. output dim.
 lr = 3e-4
 max_grad_norm = 1.0
